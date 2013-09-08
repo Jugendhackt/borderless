@@ -1,0 +1,90 @@
+<!DOCTYPE html> 
+<html lang="de"> 
+<head> 
+    <meta charset="utf-8"/> 
+    <title>Maps</title>
+    <script src="http://maps.google.com/maps/api/js?api_key=AIzaSyD-Fwn4nqYFxX_tpuQk73V2-oNmcVxoAPY&sensor=true"></script>
+    <script src="jquery.js"></script>
+    <script src="gmap3.js"></script>
+</head>
+ 
+<body>
+    <div id="pos" style="width:800px; height:600px;">
+        Deine Position wird ermittelt...
+    </div>
+    <div id="debug"></div>
+    
+    <script>
+    	//Initialize Google map
+    	var map;
+        function initialize(coords) {
+            var latlng = new google.maps.LatLng(coords.latitude, coords.longitude);
+            var myOptions = {
+                zoom: 8,
+                center: latlng,
+                mapTypeId: google.maps.MapTypeId.ROADMAP
+            };
+            map = new google.maps.Map(document.getElementById("pos"), myOptions);
+            
+            var marker = new google.maps.Marker({
+                position: latlng, 
+                map: map, 
+                title: "Hier bist du :)"
+            });
+            
+            //Eventlisteners
+
+  			google.maps.event.addListener(marker, 'click', function(event) {
+    			placeMarker(event.latLng, map);
+  			});
+
+  			google.maps.event.addListener(map, 'rightclick', function(event) {
+    			//contextmenu
+  			});
+  			google.maps.event.addListener(map, 'idle', function() {
+  				ajaxMapLoad();
+  			});
+        }
+
+  		function placeMarker(location, map) {
+        	var marker = new google.maps.Marker({
+           		position: location,
+           		map: map
+        	});
+		}
+		
+		function ajaxMapLoad() {
+			var url = "cne=" + map.getBounds().getNorthEast().toUrlValue() +
+				"&csw=" + map.getBounds().getSouthWest().toUrlValue();
+			$.ajax({
+                type: "GET",
+                url: "ajax.php",
+                data: url,
+                success: function(data) {
+                    var json = $.parseJSON(data);
+                    for (var n=0; n<json.length; n++) {
+                    	var id = json[n].id;
+                    	var name = json[n].name;
+                    	var lat = json[n].lat;
+                    	var lng = json[n].lng;
+                    	var marker = new google.maps.Marker({
+           					position: new google.maps.LatLng(lat, lng),
+           					map: map,
+           					title: name
+        				});
+                    }
+                },
+                error: function(a,b,c) {
+                	document.getElementById("debug").innerHTML += "error";
+                }
+            });
+		}
+
+        navigator.geolocation.getCurrentPosition(function(position){ 
+            initialize(position.coords);
+        }, function(){
+            document.getElementById('pos').innerHTML = 'Deine Position konnte leider nicht ermittelt werden';
+        });
+    </script>
+</body>
+</html>
